@@ -15,43 +15,40 @@ function part1(ranges: Range[], logger: Logger) {
       if (string.length % 2 !== 0) continue;
       const left = string.slice(0, string.length / 2);
       const right = string.slice(string.length / 2);
-      // logger.debugLow(i, left, right);
-      if (left === right) sum += value;
+      if (left === right) {
+        logger.debugLow('found', left, value);
+        sum += value;
+      }
     }
   }
+  // 30599400849
   logger.success('sum', sum);
 }
 
 function part2(ranges: Range[], logger: Logger) {
   let sum = 0;
-  const dividers = new Map<number, number[]>();
-  const set = new Set<string>();
-
+  const lengths = new Map<number, number[]>();
   for (const [i, range] of ranges.entries()) {
     logger.debugLow(i, '/', ranges.length - 1, range);
     for (let value = range.from; value <= range.to; ++value) {
       const string = String(value);
-      if (!dividers.has(string.length)) {
-        dividers.set(string.length, []);
+      if (!lengths.has(string.length)) {
+        lengths.set(string.length, []);
         for (let j = 1; j <= string.length / 2; ++j)
-          if (Number.isInteger(string.length / j)) dividers.get(string.length)?.push(j);
-        logger.debugLow('str len', string.length, dividers.get(string.length));
+          if (Number.isInteger(string.length / j)) lengths.get(string.length)?.push(j);
+        logger.debugLow('lengths', string.length, lengths.get(string.length));
       }
-      for (const length of dividers.get(string.length) ?? []) {
-        set.clear();
-        for (let j = 0; j < string.length / length; ++j) {
-          set.add(string.slice(j * length, (j + 1) * length));
-          if (set.size > 1) break;
-        }
-        // logger.debugLow(string, length, set);
-        if (set.size === 1) {
-          logger.debugLow('found', length, value);
+      for (const length of lengths.get(string.length) ?? []) {
+        const substring = string.slice(0, length);
+        if (substring.repeat(string.length / length) === string) {
+          logger.debugLow('found', substring, value);
           sum += value;
           break;
         }
       }
     }
   }
+  // 46270373595
   logger.success('sum', sum);
 }
 
