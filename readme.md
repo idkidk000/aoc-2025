@@ -7,3 +7,7 @@ To run day 1 part 1 with log level set to Info:\
 
 Args are documented in `lib/args.[version].ts`\
 Log levels are documented in `lib/logger.[version].ts`
+
+To create day 1 from template and open in IDE  
+`deno task init 1`
+

@@ -1,61 +1,39 @@
 import { parseArgs } from '@/lib/args.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
-function part1(banks: number[][], logger: Logger) {
+function calculate(banks: number[][], count: number, logger: Logger): number {
   let total = 0;
   for (const bank of banks) {
-    let index0 = -1;
-    let value0 = -Infinity;
-    for (let i = 0; i < bank.length - 1; ++i) {
-      const value = bank[i];
-      if (value > value0) {
-        index0 = i;
-        value0 = value;
+    const batteries = new Array<number>(count);
+    let prevIndex = -1;
+    for (let b = 0; b < count; ++b) {
+      let bestIndex = -1;
+      let bestValue = -1;
+      for (let i = prevIndex + 1; i <= bank.length - count + b; ++i) {
+        if (bank[i] <= bestValue) continue;
+        bestIndex = i;
+        bestValue = bank[i];
       }
+      batteries[b] = bestValue;
+      logger.debugMed(bank, { batteries, b, prevIndex, bestIndex, bestValue });
+      if (bestIndex < 0 || bestValue < 0) throw new Error('no bestIndex found');
+      prevIndex = bestIndex;
     }
-    let index1 = -1;
-    let value1 = -Infinity;
-    for (let i = index0 + 1; i < bank.length; ++i) {
-      const value = bank[i];
-      if (value > value1) {
-        index1 = i;
-        value1 = value;
-      }
-    }
-    const value = parseInt(`${value0}${value1}`);
-    logger.debugLow(bank, { index0, value0, index1, value1 }, value);
-    if (value0 === -Infinity || value1 === -Infinity || isNaN(value)) throw new Error('no');
-    total += value;
+    const bankValue = parseInt(batteries.join(''));
+    logger.debugLow({ bankValue });
+    total += bankValue;
   }
+  return total;
+}
+
+function part1(banks: number[][], logger: Logger) {
+  const total = calculate(banks, 2, logger);
   // 17087
   logger.success('total', total);
 }
 
 function part2(banks: number[][], logger: Logger) {
-  let total = 0;
-  const batteries = 12;
-  for (const bank of banks) {
-    const values: number[] = [];
-    let prevIndex = -1;
-    for (let b = 0; b < batteries; ++b) {
-      let index = -1;
-      let value = -Infinity;
-      for (let i = prevIndex + 1; i <= bank.length - (batteries - b); ++i) {
-        if (bank[i] > value) {
-          index = i;
-          value = bank[i];
-        }
-      }
-      logger.debugMed(bank, { values, b, index, value });
-      if (index < 0 || value === -Infinity) throw new Error('no');
-      values.push(value);
-      prevIndex = index;
-    }
-    const bankValue = parseInt(values.join(''));
-    logger.debugLow(bank, values, bankValue);
-    if (values.length !== batteries) throw new Error('no');
-    total += bankValue;
-  }
+  const total = calculate(banks, 12, logger);
   // 169019504359949
   logger.success('total', total);
 }
