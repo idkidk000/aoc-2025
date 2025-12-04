@@ -1,4 +1,4 @@
-import { parseArgs } from '@/lib/args.0.ts';
+import { AocArgParser } from '@/lib/args.1.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
 function part1(_data: string, _logger: Logger) {
@@ -8,9 +8,9 @@ function part2(_data: string, _logger: Logger) {
 }
 
 function main() {
-  const { data, logger, ...args } = parseArgs(import.meta.url);
-  if (args.part1) part1(data, logger.makeChild('part1'));
-  if (args.part2) part2(data, logger.makeChild('part2'));
+  const { data, logger, part } = new AocArgParser(import.meta.url);
+  if (part !== 2) part1(data, logger.makeChild('part1'));
+  if (part !== 1) part2(data, logger.makeChild('part2'));
 }
 
 main();
