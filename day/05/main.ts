@@ -14,24 +14,18 @@ function part1(ranges: Range[], available: number[], logger: Logger) {
 }
 
 function part2(ranges: Range[], _available: number[], logger: Logger) {
-  let merged = true;
-  while (merged) {
-    merged = false;
-    for (let i = 0; i < ranges.length - 1; ++i) {
-      const current = ranges[i];
-      const next = ranges[i + 1];
-      if (current.to >= next.from) {
-        logger.debugHigh('merge', { current, next });
-        current.from = Math.min(current.from, next.from);
-        current.to = Math.max(current.to, next.to);
-        ranges.splice(i + 1, 1);
-        merged = true;
-      }
+  const merged = ranges.toSorted((a, b) => a.from - b.from);
+  for (let i = 0; i < merged.length - 1; ++i) {
+    const current = merged[i];
+    while (i < merged.length - 1 && current.to >= merged[i + 1].from) {
+      const next = merged[i + 1];
+      logger.debugMed('merge', { current, next });
+      current.to = Math.max(current.to, next.to);
+      merged.splice(i + 1, 1);
     }
-    if (merged) logger.debugMed('intermediate', ranges);
   }
-  logger.debugLow('final', ranges);
-  const total = ranges.map(({ from, to }) => to - from + 1).reduce((acc, item) => acc + item, 0);
+  logger.debugLow({ merged });
+  const total = merged.map(({ from, to }) => to - from + 1).reduce((acc, item) => acc + item, 0);
   // 334714395325710
   logger.success('total', total);
 }
@@ -42,7 +36,7 @@ function main() {
   const ranges = parts[0].split('\n').map((line) => {
     const tokens = line.split('-');
     return { from: parseInt(tokens[0]), to: parseInt(tokens[1]) };
-  }).toSorted((a, b) => a.from - b.from);
+  });
   const available = parts[1].split('\n').map((line) => parseInt(line));
   logger.debugLow({ ranges });
   logger.debugLow({ available });
