@@ -1,70 +1,42 @@
 import { AocArgParser } from '@/lib/args.1.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
-// TODO: refactor a LOT
+type Operation = '+' | '*';
 
 function part1(data: string, logger: Logger) {
-  const intermediate = data.split('\n').map((line) => line.trim().split(/\s+/));
-  logger.debugLow({ intermediate });
-  const columns: { operation: string; values: number[] }[] = [];
-  for (let c = 0; c < intermediate[0].length; ++c) {
-    const operation = intermediate[intermediate.length - 1][c];
-    const values = new Array<number>(intermediate[0].length - 1);
-    for (let r = 0; r < intermediate.length - 1; ++r) {
-      logger.debugMed({ c, r });
-      values[r] = parseInt(intermediate[r][c]);
+  const grid = data.split('\n').map((line) => line.trim().split(/\s+/));
+  let total = 0;
+  for (let c = 0; c < grid[0].length; ++c) {
+    const operation = grid[grid.length - 1][c] as Operation;
+    let value = operation === '*' ? 1 : 0;
+    for (let r = 0; r < grid.length - 1; ++r) {
+      if (operation === '+') value += parseInt(grid[r][c]);
+      else if (operation === '*') value *= parseInt(grid[r][c]);
+      else throw new Error(`invalid operation ${operation}`);
     }
-    columns.push({ operation, values });
+    logger.debugLow({ c, operation, value });
+    total += value;
   }
-  logger.debugLow({ columns });
-  const calculated = columns.map(({ operation, values }) => {
-    switch (operation) {
-      case '+':
-        return values.reduce((acc, item) => acc + item, 0);
-      case '*':
-        return values.reduce((acc, item) => acc * item, 1);
-      default:
-        throw new Error(`invalid operation${operation}`);
-    }
-  });
-  logger.debugLow({ calculated });
-  const total = calculated.reduce((acc, item) => acc + item, 0);
   // 4076006202939
   logger.success(total);
 }
 
 function part2(data: string, logger: Logger) {
-  type Operation = '+' | '*';
   const rows = data.split('\n');
-  const operationRow = rows[rows.length - 1].split('');
-  const ranges: { from: number; to: number; operation: Operation }[] = [];
-  let from = 0;
-  let to = from;
-  for (const [i, token] of operationRow.entries()) {
-    logger.debugHigh({ i, token });
-    if (i !== 0 && (token !== ' ' || i === operationRow.length - 1)) {
-      if (i === operationRow.length - 1) to = i;
-      logger.debugMed({ from, to, text: operationRow.slice(from, to).join('') });
-      ranges.push({ from, to, operation: operationRow[from] as Operation });
-      from = i;
-      to = from;
-    } else { to = i; }
-  }
-  logger.debugLow({ operationRow, ranges, len: operationRow.length });
   let total = 0;
-  for (const range of ranges) {
-    const values: number[] = [];
-    for (let c = range.from; c <= range.to; ++c) {
-      let value = '';
-      for (let r = 0; r < rows.length - 1; ++r)
-        value += rows[r][c];
-      const trimmed = value.trim();
-      if (trimmed.length) values.push(parseInt(trimmed));
-    }
-    logger.debugLow({ range, values });
-    if (range.operation === '*') total += values.reduce((acc, item) => acc * item, 1);
-    else if (range.operation === '+') total += values.reduce((acc, item) => acc + item, 0);
-    else throw new Error(`invalid operation ${range.operation}`);
+  let values: number[] = [];
+  for (let c = rows[0].length - 1; c >= 0; --c) {
+    let value = '';
+    for (let r = 0; r < rows.length - 1; ++r) value += rows[r][c];
+    const trimmed = value.trim();
+    if (trimmed.length) values.push(parseInt(trimmed));
+    const operation = rows[rows.length - 1][c] as Operation | ' ';
+    if (operation === ' ') continue;
+    logger.debugLow({ c, operation, values });
+    if (operation === '+') total += values.reduce((acc, item) => acc + item, 0);
+    else if (operation === '*') total += values.reduce((acc, item) => acc * item, 1);
+    else throw new Error(`invalid operation ${operation}`);
+    values = [];
   }
   // 7903168391557
   logger.success(total);
