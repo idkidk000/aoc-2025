@@ -45,7 +45,7 @@ function main() {
     const tokens = line.split(',').map((token) => parseInt(token));
     return { x: tokens[0], y: tokens[1], z: tokens[2] };
   });
-  const distances: { left: Point3DLike; right: Point3DLike; d2: number }[] = [];
+  const distances: PointDist[] = [];
   for (const [l, left] of points.entries()) {
     for (const right of points.slice(l + 1)) {
       const d2 = Point3D.distance(left, right, Distance.Hypot2);
@@ -53,9 +53,8 @@ function main() {
     }
   }
   distances.sort((a, b) => a.d2 - b.d2);
-  const circuits = points.map((point) => new HashedSet(Point3D.hash, [point]));
-  if (part !== 2) part1(distances, [...circuits], logger.makeChild('part1'));
-  if (part !== 1) part2(distances, [...circuits], logger.makeChild('part2'));
+  if (part !== 2) part1(distances, points.map((point) => new HashedSet(Point3D.hash, [point])), logger.makeChild('part1'));
+  if (part !== 1) part2(distances, points.map((point) => new HashedSet(Point3D.hash, [point])), logger.makeChild('part2'));
 }
 
 main();

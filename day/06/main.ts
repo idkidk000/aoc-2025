@@ -27,14 +27,14 @@ function part2(data: string, logger: Logger) {
   let values: number[] = [];
   for (let c = rows[0].length - 1; c >= 0; --c) {
     let value = '';
-    for (let r = 0; r < rows.length - 1; ++r) value += rows[r][c];
-    const trimmed = value.trim();
-    if (trimmed.length) values.push(parseInt(trimmed));
+    for (let r = 0; r < rows.length - 1; ++r) if (rows[r][c] !== ' ') value += rows[r][c];
+    if (value.length) values.push(parseInt(value));
     const operation = rows[rows.length - 1][c] as Operation | ' ';
     if (operation === ' ') continue;
     logger.debugLow({ c, operation, values });
-    if (operation === '+') total += values.reduce((acc, item) => acc + item, 0);
-    else if (operation === '*') total += values.reduce((acc, item) => acc * item, 1);
+    if (values.length === 0) throw new Error(`no values found for operation ${operation}`);
+    if (operation === '+') total += values.reduce((acc, item) => acc + item);
+    else if (operation === '*') total += values.reduce((acc, item) => acc * item);
     else throw new Error(`invalid operation ${operation}`);
     values = [];
   }
