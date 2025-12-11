@@ -1,4 +1,4 @@
-import { parseArgs } from '@/lib/args.0.ts';
+import { AocArgParser } from '@/lib/args.1.ts';
 import { Logger } from '@/lib/logger.0.ts';
 
 interface Range {
@@ -53,14 +53,14 @@ function part2(ranges: Range[], logger: Logger) {
 }
 
 function main() {
-  const { data, logger, ...args } = parseArgs(import.meta.url);
+  const { data, logger, part } = new AocArgParser(import.meta.url);
   const ranges = data.replaceAll('\n', '').split(',').map((token) => {
     const parts = token.split('-');
     return { from: parseInt(parts[0]), to: parseInt(parts[1]) };
   });
   logger.debugLow(ranges);
-  if (args.part1) part1(ranges, logger.makeChild('part1'));
-  if (args.part2) part2(ranges, logger.makeChild('part2'));
+  if (part !== 2) part1(ranges, logger.makeChild('part1'));
+  if (part !== 1) part2(ranges, logger.makeChild('part2'));
 }
 
 main();

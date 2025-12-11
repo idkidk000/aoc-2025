@@ -13,13 +13,13 @@ function simulate(distances: PointDist[], circuits: HashedSet<Point3DLike, numbe
   for (const distance of (typeof exitCondition === 'number' ? distances.slice(0, exitCondition) : distances)) {
     const l = circuits.findIndex((circuit) => circuit.has(distance.left));
     const r = circuits.findIndex((circuit) => circuit.has(distance.right));
-    logger.debugLow(distance, { l, r });
+    logger.debugMed(distance, { l, r });
     if (l === -1 || r === -1) throw new Error('could not find one or more items');
     if (l === r) continue;
     circuits[l] = circuits[l].union(circuits[r]);
     circuits.splice(r, 1);
     if (exitCondition === 'merged' && circuits.length === 1) {
-      logger.info('single circuit', distance);
+      logger.debugLow('single circuit', distance);
       return distance.left.x * distance.right.x;
     }
   }

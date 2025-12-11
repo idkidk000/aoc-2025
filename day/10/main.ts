@@ -1,6 +1,7 @@
 import { AocArgParser } from '@/lib/args.1.ts';
 import { Deque } from '@/lib/deque.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
+import { type Brand } from '@/lib/types.0.ts';
 
 interface Machine {
   id: number;
@@ -10,7 +11,7 @@ interface Machine {
 }
 
 function part1(machines: Machine[], logger: Logger) {
-  type Bitfield = number & { __brand: 'Bitfield' };
+  type Bitfield = Brand<number, 'Bitfield'>;
   interface QueueItem {
     indicators: Bitfield;
     buttonId: number;
@@ -66,11 +67,11 @@ function part1(machines: Machine[], logger: Logger) {
  * https://redlib.catsarch.com/r/adventofcode/comments/1pity70/2025_day_10_solutions/nta30mi/?context=3#nta30mi */
 function part2(machines: Machine[], logger: Logger) {
   // non-branded types would simplify to their primitives
-  type ButtonId = number & { __brand: 'ButtonId' };
-  type CounterId = number & { __brand: 'CounterId' };
-  type CounterIdCount = number & { __brand: 'CounterIdCount'; __indexedBy: 'CounterId' };
-  type Button = CounterId[] & { __brand: 'Button'; __indexedBy: 'ButtonId' };
-  type Counters = number[] & { __brand: 'Counters'; __indexedBy: 'CounterId' };
+  type ButtonId = Brand<number, 'ButtonId'>;
+  type CounterId = Brand<number, 'CounterId'>;
+  type CounterIdCount = Brand<number, 'CounterIdCount', 'CounterId'>;
+  type Button = Brand<CounterId[], 'Button', 'ButtonId'>;
+  type Counters = Brand<number[], 'Counters', 'CounterId'>;
 
   /** recursively sort buttons with least common counterIds of the remaining buttons towards the front */
   function optimiseButtons(buttons: Readonly<Machine['buttons']>): Button[] {

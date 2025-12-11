@@ -1,4 +1,4 @@
-import { parseArgs } from '@/lib/args.0.ts';
+import { AocArgParser } from '@/lib/args.1.ts';
 import { Logger } from '@/lib/logger.0.ts';
 import { Utils } from '@/lib/utils.0.ts';
 
@@ -34,10 +34,10 @@ function part2(operations: number[], logger: Logger) {
 }
 
 function main() {
-  const { data, logger, ...args } = parseArgs(import.meta.url);
+  const { data, logger, part } = new AocArgParser(import.meta.url);
   const operations = data.split('\n').map((token) => parseInt(token.slice(1)) * (token.slice(0, 1) === 'L' ? -1 : 1));
-  if (args.part1) part1(operations, logger.makeChild('part1'));
-  if (args.part2) part2(operations, logger.makeChild('part2'));
+  if (part !== 2) part1(operations, logger.makeChild('part1'));
+  if (part !== 1) part2(operations, logger.makeChild('part2'));
 }
 
 main();

@@ -1,7 +1,8 @@
+import { Logger } from '@/lib/logger.0.ts';
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Logger } from '@/lib/logger.0.ts';
+import { argv } from 'node:process';
 
 const exists = async (path: string) => {
   try {
@@ -17,7 +18,7 @@ const editor = ['flatpak', 'run', 'com.vscodium.codium'];
 const textFiles = ['sample1.txt', 'input.txt'];
 
 const logger = new Logger(import.meta.url);
-const day = parseInt(Deno.args.at(0) ?? '');
+const day = parseInt(argv.at(2) ?? '');
 if (isNaN(day)) throw new Error('missing required day number arg');
 
 const directory = join('day', day.toString().padStart(2, '0'));
