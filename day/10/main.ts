@@ -1,129 +1,159 @@
 import { AocArgParser } from '@/lib/args.1.ts';
-import { Logger } from '@/lib/logger.0.ts';
 import { Deque } from '@/lib/deque.0.ts';
+import { Logger } from '@/lib/logger.0.ts';
 
-/** `indicators`: bitfield of indicator string
- *
- * `buttons`: array of xor masks */
 interface Machine {
-  indicators: number;
-  buttons: number[];
-  joltage: number[];
-  orig: {
-    indicators: string;
-    buttons: string[];
-    joltage: string;
-  };
-}
-
-interface IndicatorsQueueItem {
-  indicators: number;
-  presses: number[];
-}
-
-function solveIndicators(machine: Machine, logger: Logger): IndicatorsQueueItem {
-  const queue = new Deque<IndicatorsQueueItem>();
-  queue.pushBack({ indicators: 0, presses: [] });
-  while (queue.size) {
-    const item = queue.popFront();
-    if (!item) continue;
-    // pressing button 1 then 2 is the same as 2 then 1
-    // pressing button 1 twice is the same as not pressing it at all
-    for (let b = (item.presses.at(-1) ?? -1) + 1; b < machine.buttons.length; ++b) {
-      const button = machine.buttons[b];
-      const nextItem: IndicatorsQueueItem = {
-        indicators: item.indicators ^ button,
-        presses: [...item.presses, b],
-      };
-      logger.debugMed({ item, button, nextItem });
-      if (nextItem.indicators === machine.indicators) return nextItem;
-      queue.pushBack(nextItem);
-    }
-  }
-  throw new Error('oh no');
-}
-
-// i couldn't write a solution which would complete in a reasonable amount of time and i won't use a solver lib
-// copied from https://github.com/mkern75/AdventOfCodePython/blob/main/year2025/Day10.py so i can learn
-// https://redlib.catsarch.com/r/adventofcode/comments/1pity70/2025_day_10_solutions/nta30mi/?context=3#nta30mi
-function solveJoltage(machine: Machine, logger: Logger) {
-  function optimiseButtons(): number[][] {
-    const buttons = machine.buttons.map((button) =>
-      new Array<number>(machine.joltage.length).fill(0).map((_, i) => button & (1 << i) ? i : null).filter((value) => value !== null)
-    );
-
-    const optimisedButtons: number[][] = [];
-    const buttonValueCounts = new Map<number, number>();
-    while (buttons.length) {
-      buttonValueCounts.clear();
-      for (const button of buttons) for (const value of button) buttonValueCounts.set(value, (buttonValueCounts.get(value) ?? 0) + 1);
-      const [[id]] = buttonValueCounts.entries().toArray().toSorted((a, b) => a[1] - b[1] || a[0] - b[0]);
-      let ix: number | null = null;
-      for (const [b, button] of buttons.entries()) if (button.includes(id) && (ix === null || buttons[ix].length < button.length)) ix = b;
-      if (ix === null) throw new Error('oh no');
-      optimisedButtons.push(buttons[ix]);
-      buttons.splice(ix, 1);
-    }
-
-    return optimisedButtons;
-  }
-
-  const buttons = optimiseButtons();
-
-  const pressesRemaining = Array.from({ length: buttons.length + 1 }, () => new Array<number>(machine.joltage.length).fill(0));
-  for (let b = buttons.length - 1; b >= 0; --b) {
-    for (let j = 0; j < machine.joltage.length; ++j) pressesRemaining[b][j] += pressesRemaining[b + 1][j];
-    for (const id of buttons[b]) ++pressesRemaining[b][id];
-  }
-
-  logger.debugMed({ buttons, pressesRemaining });
-
-  let best = Infinity;
-  function recurse(remain: number[], buttonId: number, pressesSoFar: number) {
-    logger.debugHigh({ remain, buttonId, pressesSoFar });
-    if (pressesSoFar >= best) return;
-    if (pressesSoFar + remain.reduce((acc, item) => Math.max(acc, item)) >= best) return;
-    if (buttonId === buttons.length) {
-      if (remain.every((value) => value === 0)) best = pressesSoFar;
-      return;
-    }
-    let minPresses = 0;
-    let maxPresses = Infinity;
-    for (const id of buttons[buttonId]) {
-      maxPresses = Math.min(maxPresses, remain[id]);
-      if (pressesRemaining[buttonId][id] === 1) minPresses = Math.max(minPresses, remain[id]);
-    }
-    if (minPresses > maxPresses) return;
-    for (let press = minPresses; press <= maxPresses; ++press) {
-      const nextRemain = [...remain];
-      for (const id of buttons[buttonId]) nextRemain[id] -= press;
-      recurse(nextRemain, buttonId + 1, pressesSoFar + press);
-    }
-  }
-
-  recurse([...machine.joltage], 0, 0);
-  if (best === Infinity) throw new Error('oh no');
-  return best;
+  id: number;
+  indicators: string;
+  buttons: number[][];
+  joltages: number[];
 }
 
 function part1(machines: Machine[], logger: Logger) {
-  let total = 0;
-  for (const [m, { orig, ...machine }] of machines.entries()) {
-    logger.debugLow({ m }, orig);
-    const solution = solveIndicators({ orig, ...machine }, logger);
-    logger.debugLow('  ', solution.presses.map((ix) => orig.buttons[ix]));
-    total += solution.presses.length;
+  type Bitfield = number & { __brand: 'Bitfield' };
+  interface QueueItem {
+    indicators: Bitfield;
+    buttonId: number;
+    presses: number;
   }
+
+  function solve(machine: Pick<Machine, 'indicators' | 'buttons'>): number {
+    // convert indicators to a target number and buttons to xor masks
+    const target = parseInt(machine.indicators.split('').map((token) => token === '#' ? '1' : '0').toReversed().join(''), 2) as Bitfield;
+    const buttons = machine.buttons.map((button) => {
+      let mask = 0;
+      for (const indicatorId of button) mask |= 1 << indicatorId;
+      return mask as Bitfield;
+    });
+
+    const queue = new Deque<QueueItem>();
+    queue.pushBack({ indicators: 0 as Bitfield, buttonId: 0, presses: 0 });
+
+    while (queue.size) {
+      const item = queue.popFront();
+      if (!item) continue;
+      // each button can be pressed exactly 0 or 1 times. other counts create duplicate states
+      for (let b = item.buttonId; b < buttons.length; ++b) {
+        const button = buttons[b];
+        const nextItem: QueueItem = {
+          indicators: (item.indicators ^ button) as Bitfield,
+          buttonId: b + 1,
+          presses: item.presses + 1,
+        };
+        logger.debugMed({ item, button, nextItem });
+        if (nextItem.indicators === target) return nextItem.presses;
+        queue.pushBack(nextItem);
+      }
+    }
+
+    throw new Error(`could not solve ${JSON.stringify(machine)}`);
+  }
+
+  let total = 0;
+  for (const { joltages: _, id, ...machine } of machines) {
+    logger.debugLow(id, '/', machines.length, machine);
+    const presses = solve(machine);
+    logger.debugLow('  ', presses);
+    total += presses;
+  }
+
   // 558
   logger.success(total);
 }
 
+/** i couldn't write a solution which would complete in a reasonable amount of time and i won't use a solver lib\
+ * copied from https://github.com/mkern75/AdventOfCodePython/blob/main/year2025/Day10.py so i can learn\
+ * https://redlib.catsarch.com/r/adventofcode/comments/1pity70/2025_day_10_solutions/nta30mi/?context=3#nta30mi */
 function part2(machines: Machine[], logger: Logger) {
+  // non-branded types would simplify to their primitives
+  type ButtonId = number & { __brand: 'ButtonId' };
+  type CounterId = number & { __brand: 'CounterId' };
+  type CounterIdCount = number & { __brand: 'CounterIdCount'; __indexedBy: 'CounterId' };
+  type Button = CounterId[] & { __brand: 'Button'; __indexedBy: 'ButtonId' };
+  type Counters = number[] & { __brand: 'Counters'; __indexedBy: 'CounterId' };
+
+  /** recursively sort buttons with least common counterIds of the remaining buttons towards the front */
+  function optimiseButtons(buttons: Readonly<Machine['buttons']>): Button[] {
+    const original = [...buttons];
+    const optimised: Button[] = [];
+    const counterIdCounts = new Map<number, number>();
+
+    while (original.length) {
+      counterIdCounts.clear();
+      for (const counterId of original.flat()) counterIdCounts.set(counterId, (counterIdCounts.get(counterId) ?? 0) + 1);
+      const [[counterId]] = counterIdCounts.entries().toArray().toSorted((a, b) => a[1] - b[1] || a[0] - b[0]);
+      let bestIx = -1;
+      for (const [b, button] of original.entries()) if (button.includes(counterId) && (bestIx === -1 || original[bestIx].length < button.length)) bestIx = b;
+      optimised.push(original[bestIx] as Button);
+      original.splice(bestIx, 1);
+    }
+
+    return optimised;
+  }
+
+  function solve({ id, ...machine }: Pick<Machine, 'buttons' | 'joltages' | 'id'>): number {
+    const buttons = optimiseButtons(machine.buttons);
+
+    /** counterId activation counts by buttonId, accumulated from the last toward the first\
+     * used to detect when our button is the last which activates a given counter, i.e. it **must** be pressed */
+    const buttonsRemaining: Record<ButtonId, CounterIdCount[]> = {};
+    for (const [buttonId, button] of buttons.entries().toArray().toReversed()) {
+      // accumulate from back to front
+      const activations = buttonId === buttons.length - 1
+        ? new Array<CounterIdCount>(machine.joltages.length).fill(0 as CounterIdCount)
+        : [...buttonsRemaining[(buttonId + 1) as ButtonId]];
+      // incremement counts for all counterIds in the current button
+      for (const counterId of button) ++activations[counterId];
+      buttonsRemaining[buttonId as ButtonId] = activations;
+    }
+    logger.debugHigh({ id, buttons, buttonsRemaining });
+
+    let best = Infinity;
+    function recurse(remain: Counters, buttonId: ButtonId, pressesSoFar: number) {
+      if (pressesSoFar >= best || pressesSoFar + Math.max(...remain) >= best) return;
+
+      // completed
+      if (buttonId === buttons.length) {
+        if (Math.max(...remain) === 0) {
+          best = pressesSoFar;
+          logger.debugMed({ id }, 'new best', pressesSoFar);
+        }
+        return;
+      }
+
+      const button = buttons[buttonId];
+      /** 0 unless there is only one way left to complete one of the counters which our button activates*/
+      let minPresses = 0;
+      /** max presses before overrunning target in one of the counter fields*/
+      let maxPresses = Infinity;
+
+      for (const counterId of button) {
+        maxPresses = Math.min(maxPresses, remain[counterId]);
+        if (buttonsRemaining[buttonId][counterId] === 1) minPresses = Math.max(minPresses, remain[counterId]);
+      }
+
+      if (minPresses > maxPresses) return;
+
+      for (let presses = minPresses; presses <= maxPresses; ++presses) {
+        const nextRemain = [...remain] as Counters;
+        for (const counterId of button) nextRemain[counterId] -= presses;
+        // move to the next button
+        recurse(nextRemain, (buttonId + 1) as ButtonId, pressesSoFar + presses);
+      }
+    }
+
+    recurse([...machine.joltages] as Counters, 0 as ButtonId, 0);
+    if (best === Infinity) throw new Error('oh no');
+    return best;
+  }
+
   let total = 0;
-  for (const [m, { orig, ...machine }] of machines.entries()) {
-    const best = solveJoltage({ orig, ...machine }, logger);
-    logger.debugLow({ m, orig, best });
-    total += best;
+  for (const { indicators: _, id, ...machine } of machines) {
+    logger.debugLow(id, '/', machines.length, machine);
+    const started = performance.now();
+    const presses = solve({ id, ...machine });
+    logger.debugLow('  ', presses, { elapsed: performance.now() - started });
+    total += presses;
   }
   // 20317
   logger.success(total);
@@ -131,21 +161,13 @@ function part2(machines: Machine[], logger: Logger) {
 
 function main() {
   const { data, logger, part } = new AocArgParser(import.meta.url);
-  const machines: Machine[] = data.split('\n').map((line) => {
+  const machines: Machine[] = data.trimEnd().split('\n').map((line, id) => {
     const tokens = line.split(/\s+/);
-    // deno-lint-ignore no-non-null-assertion
-    const strIndicators = tokens.shift()!;
-    const indicators = parseInt(strIndicators.slice(1, -1).split('').map((token) => token === '#' ? '1' : '0').toReversed().join(''), 2);
-    // deno-lint-ignore no-non-null-assertion
-    const strJoltage = tokens.pop()!;
-    const joltage = strJoltage.slice(1, -1).split(',').map((token) => parseInt(token));
-    const buttons = tokens.map((token) => {
-      const values = token.slice(1, -1).split(',').map((value) => parseInt(value));
-      let mask = 0;
-      for (const value of values) mask |= 1 << value;
-      return mask;
-    });
-    return { indicators, buttons, joltage, orig: { buttons: tokens, indicators: strIndicators, joltage: strJoltage } };
+    const indicators = tokens.shift()?.slice(1, -1);
+    const joltages = tokens.pop()?.slice(1, -1).split(',').map((token) => parseInt(token));
+    if (!indicators || !joltages) throw new Error('parsing error');
+    const buttons = tokens.map((token) => token.slice(1, -1).split(',').map((value) => parseInt(value)));
+    return { indicators, buttons, joltages, id };
   });
   if (part !== 2) part1(machines, logger.makeChild('part1'));
   if (part !== 1) part2(machines, logger.makeChild('part2'));
