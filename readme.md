@@ -2,8 +2,8 @@
 
 ### Requirements
 
-This project uses [`deno`](https://deno.com/) and has [`aoc-2025-deno-libs`](../aoc-2025-deno-libs/readme.md) as a
-[submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).\
+This project uses [`deno`](https://deno.com/) and has [`aoc-2025-deno-libs`](https://github.com/idkidk000/aoc-2025-deno-libs) as a
+[submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). There are no other external dependencies.\
 Either:
 
 - Add `--recurse-submodules` to your `git clone` command, e.g. `git clone --recurse-submodules [repo_url] [local_dir]`
@@ -33,4 +33,4 @@ Log levels are documented in `lib/logger.[version].ts`
 - [Day 09 - Movie Theater](day/09/main.ts)
 - [Day 10 - Factory](day/10/main.ts)
 - [Day 11 - Reactor](day/11/main.ts)
-- [Day 12 - ???](day/12/main.ts)
+- [Day 12 - Christmas Tree Farm](day/12/main.ts)

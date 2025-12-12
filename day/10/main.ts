@@ -103,7 +103,7 @@ function part2(machines: Machine[], logger: Logger) {
       const activations = buttonId === buttons.length - 1
         ? new Array<CounterIdCount>(machine.joltages.length).fill(0 as CounterIdCount)
         : [...buttonsRemaining[(buttonId + 1) as ButtonId]];
-      // incremement counts for all counterIds in the current button
+      // increment counts for all counterIds in the current button
       for (const counterId of button) ++activations[counterId];
       buttonsRemaining[buttonId as ButtonId] = activations;
     }
