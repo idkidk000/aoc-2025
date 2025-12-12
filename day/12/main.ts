@@ -15,15 +15,18 @@ function part1(regions: Region[], presents: Present[], logger: Logger) {
   let mightFit = 0;
   let wontFit = 0;
   for (const region of regions) {
-    const presentCount = region.counts.values().reduce((acc, item) => acc + item);
+    // each present is 3x3
+    const compressedMaxPresentArea = region.counts.values().reduce((acc, item) => acc + item, 0);
+    const compressedRegionArea = Math.floor(region.w / 3) * Math.floor(region.h / 3);
     const minPresentArea = region.counts
       .entries()
-      .map(([presentId, count]) => presents[presentId].findAll((value) => value === '#').reduce((acc) => ++acc, 0) * count)
+      .map(([presentId, count]) =>
+        presents[presentId]
+          .findAll((value) => value === '#')
+          .reduce((acc) => ++acc, 0) * count
+      )
       .reduce((acc, item) => acc + item, 0);
     const regionArea = region.w * region.h;
-    // each present is 3x3
-    const compressedRegionArea = Math.floor(region.w / 3) * Math.floor(region.h / 3);
-    const compressedMaxPresentArea = presentCount;
     if (compressedRegionArea >= compressedMaxPresentArea) ++defFit;
     else if (regionArea >= minPresentArea) ++mightFit;
     else ++wontFit;
