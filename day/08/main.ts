@@ -1,16 +1,18 @@
 import { AocArgParser } from '@/lib/args.1.ts';
-import { HashedSet } from '@/lib/hashed-set.0.ts';
+import { BinaryHeap } from '@/lib/binary-heap.0.ts';
 import { Logger } from '@/lib/logger.0.ts';
+import { PackedSet } from '@/lib/packed-set.0.ts';
 import { Distance, Point3D, Point3DLike } from '@/lib/point3d.0.ts';
-
 interface PointDist {
   left: Point3DLike;
   right: Point3DLike;
   d2: number;
 }
 
-function simulate(distances: PointDist[], circuits: HashedSet<Point3DLike, number>[], logger: Logger, exitCondition: number | 'merged') {
-  for (const distance of (typeof exitCondition === 'number' ? distances.slice(0, exitCondition) : distances)) {
+function simulate(distances: BinaryHeap<PointDist>, circuits: PackedSet<Point3DLike, number>[], logger: Logger, exitCondition: number | 'merged') {
+  for (let i = 0; typeof exitCondition === 'number' ? i < exitCondition : true; ++i) {
+    const distance = distances.pop();
+    if (!distance) throw new Error('oh no');
     const l = circuits.findIndex((circuit) => circuit.has(distance.left));
     const r = circuits.findIndex((circuit) => circuit.has(distance.right));
     logger.debugMed(distance, { l, r });
@@ -27,13 +29,13 @@ function simulate(distances: PointDist[], circuits: HashedSet<Point3DLike, numbe
   return circuits.map((circuit) => circuit.size).toSorted((a, b) => b - a).slice(0, 3).reduce((acc, item) => acc * item, 1);
 }
 
-function part1(distances: PointDist[], circuits: HashedSet<Point3DLike, number>[], logger: Logger) {
+function part1(distances: BinaryHeap<PointDist>, circuits: PackedSet<Point3DLike, number>[], logger: Logger) {
   const result = simulate(distances, circuits, logger, 1000);
   // 90036
   logger.success('result', result);
 }
 
-function part2(distances: PointDist[], circuits: HashedSet<Point3DLike, number>[], logger: Logger) {
+function part2(distances: BinaryHeap<PointDist>, circuits: PackedSet<Point3DLike, number>[], logger: Logger) {
   const result = simulate(distances, circuits, logger, 'merged');
   // 6083499488
   logger.success('result', result);
@@ -42,19 +44,19 @@ function part2(distances: PointDist[], circuits: HashedSet<Point3DLike, number>[
 function main() {
   const { data, logger, part } = new AocArgParser(import.meta.url);
   const points: Point3DLike[] = data.split('\n').map((line) => {
-    const tokens = line.split(',').map((token) => parseInt(token));
-    return { x: tokens[0], y: tokens[1], z: tokens[2] };
+    const tokens = line.split(',');
+    return { x: parseInt(tokens[0]), y: parseInt(tokens[1]), z: parseInt(tokens[2]) };
   });
-  const distances: PointDist[] = [];
+  // using this instead of sorting an array with 500k entries halves the runtime
+  const distances = new BinaryHeap<PointDist>((a, b) => a.d2 - b.d2);
   for (const [l, left] of points.entries()) {
     for (const right of points.slice(l + 1)) {
       const d2 = Point3D.distance(left, right, Distance.Hypot2);
       distances.push({ left, right, d2 });
     }
   }
-  distances.sort((a, b) => a.d2 - b.d2);
-  if (part !== 2) part1(distances, points.map((point) => new HashedSet(Point3D.hash, [point])), logger.makeChild('part1'));
-  if (part !== 1) part2(distances, points.map((point) => new HashedSet(Point3D.hash, [point])), logger.makeChild('part2'));
+  if (part !== 2) part1(distances, points.map((point) => new PackedSet(Point3D.hash, undefined, [point])), logger.makeChild('part1'));
+  if (part !== 1) part2(distances, points.map((point) => new PackedSet(Point3D.hash, undefined, [point])), logger.makeChild('part2'));
 }
 
 main();
